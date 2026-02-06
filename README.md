@@ -44,7 +44,7 @@ This launches a beautiful web interface at `http://localhost:8501`
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/prince-kumar-singh/ai-travel-assistant.git
    cd ai-travel-assistant
    ```
 
