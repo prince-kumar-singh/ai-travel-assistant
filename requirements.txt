@@ -1,0 +1,6 @@
+groq
+requests
+python-dotenv
+feedparser
+pydantic
+streamlit
