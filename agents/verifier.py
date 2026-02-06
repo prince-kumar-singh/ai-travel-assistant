@@ -1,7 +1,8 @@
 import json
 from typing import Dict, Any
-from agents.planner import LLMClient
+from llm.llm_client import LLMClient
 from tools.rss_tool import RSSTool
+from agents.schemas import FinalRecommendation
 
 class VerifierAgent:
     """
@@ -14,13 +15,13 @@ class VerifierAgent:
 
     def verify_and_respond(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Verifies the results and generates the final response.
+        Verifies the results and generates the final response with Pydantic validation.
         
         Args:
             context (Dict): The context from the Executor.
             
         Returns:
-            Dict: The final structured output.
+            Dict: The validated final structured output.
         """
         results = context.get("results", {})
         destination = context.get("destination", "Unknown")
@@ -57,7 +58,7 @@ class VerifierAgent:
             "date": "{context.get("date")}",
             "weather": {{
                 "condition": "Summarized condition from weather data",
-                "temperature": "Temp from weather data"
+                "temperature": numeric temperature value
             }},
             "alerts": ["List of summarized key alerts or 'No major alerts'"],
             "travel_score": 0-10 (10 = Safe, 0 = Unsafe),
@@ -66,14 +67,24 @@ class VerifierAgent:
         """
         
         response_text = self.llm.generate(final_prompt)
-        
         cleaned_response = response_text.replace("```json", "").replace("```", "").strip()
         
         try:
-            final_json = json.loads(cleaned_response)
-            return final_json
-        except json.JSONDecodeError:
+            final_dict = json.loads(cleaned_response)
+            
+            # Validate with Pydantic
+            validated_response = FinalRecommendation(**final_dict)
+            return validated_response.dict()
+            
+        except json.JSONDecodeError as e:
+            print(f"[Verifier] JSON parsing error: {e}. Raw: {response_text}")
             return {
-                "error": "Failed to generate final verification response",
+                "error": "Failed to generate final verification response - JSON error",
+                "raw_output": response_text
+            }
+        except Exception as e:
+            print(f"[Verifier] Validation error: {e}")
+            return {
+                "error": f"Verification validation failed: {str(e)}",
                 "raw_output": response_text
             }
